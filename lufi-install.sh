@@ -388,8 +388,13 @@ if [ "${installLDAP}" = true ]; then
 		cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 		
 		echo -e "${CYAN}Téléchargement du fichier filter Lufi pour Fail2Ban...${NC}"
-		wget --no-check-certificate --show-progress https://raw.githubusercontent.com/zazazouthecat/lufi-install/main/fail2ban/filter/lufi.conf /etc/fail2ban/jail.d/lufi.conf
-
+		wget --no-check-certificate -q --show-progress https://raw.githubusercontent.com/zazazouthecat/lufi-install/main/fail2ban/filter/lufi.conf /etc/fail2ban/jail.d/lufi.conf
+		if [ $? -ne 0 ]; then
+			echo -e "${RED}Echec de téléchargement de lufi.conf.. Veuillez le télécharger manuellement" 1>&2
+			#exit 1
+		fi
+		echo -e "${GREEN}lufi.conf Téléchargé${NC}"
+		
 		echo "[lufi]" >> /etc/fail2ban/jail.d/lufi.conf
 		echo "enabled = true" >> /etc/fail2ban/jail.d/lufi.conf
 		echo "banaction=ufw" >> /etc/fail2ban/jail.d/lufi.conf
