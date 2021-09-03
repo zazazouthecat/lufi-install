@@ -6,7 +6,7 @@ Script basé sur les sources https://framagit.org/fiat-tux/hat-softwares/lufi
  
  
 ## 🐧 Linux distribution 
-✅ Debian 10  ❌ Debian 11  ✅ Ubuntu 20
+✅ Debian 10  ✅ Debian 11  ✅ Ubuntu 20
 
 #
 
