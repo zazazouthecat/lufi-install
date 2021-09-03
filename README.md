@@ -2,7 +2,7 @@
 Script basé sur les sources https://framagit.org/fiat-tux/hat-softwares/lufi
 
 ## 😺 Modifications
- - Ajout Fail2Ban & ufw
+ - Ajout Fail2Ban & ufw (Pour LDAP)
  
  
 ## 🐧 Linux distribution 
