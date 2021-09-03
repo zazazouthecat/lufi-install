@@ -128,10 +128,20 @@ if [ -z "${contactMail}" ]; then
 			echo -e "${YELLOW2}L'adresse mail de contact peut etre vide. Veuillez réessayer.${NC}" 1>&2
 	done
 fi
+
 [ -z "${instanceName}" ] \
 	&& read -p "Entrez le nom de votre instance [Ex : The Nerd Cat] :" instanceName
 [ -z "${maxSizeUpload}" ] \
 	&& read -p "Entrez la taille maximale des fichiers autorisés en GO [Ex : 2 , pour 2Go] : " maxSizeUpload
+	
+
+if [ -z "${delayDefault}" ]; then
+	while true; do
+		read -p "Entrez le délais par default de conservation du fichier en jour [0, 1, 7, 30 ou 365] : " delayDefault
+			[ "${delayDefault}" = "0" ] || [ "${delayDefault}" = "1" ] || [ "${delayDefault}" = "7" ] || [ "${delayDefault}" = "30" ] || [ "${delayDefault}" = "365" ] && break
+			echo -e "${YELLOW2}La valeur saisie est incorrecte, Liste des valeurs attendues [0, 1, 7, 30 ou 365].${NC}" 1>&2
+	done
+fi
 [ -z "${delayDefault}" ] \
 	&& read -p "Entrez le délais par default de conservation du fichier en jour [0, 1, 7, 30 ou 365] : " delayDefault
 [ -z "${maxDelay}" ] \
@@ -389,11 +399,7 @@ if [ "${installLDAP}" = true ]; then
 		
 		echo -e "${CYAN}Téléchargement du fichier filter Lufi pour Fail2Ban...${NC}"
 		wget --no-check-certificate -q --show-progress https://raw.githubusercontent.com/zazazouthecat/lufi-install/main/fail2ban/filter/lufi.conf /etc/fail2ban/jail.d/lufi.conf
-		if [ $? -ne 0 ]; then
-			echo -e "${RED}Echec de téléchargement de lufi.conf.. Veuillez le télécharger manuellement" 1>&2
-			#exit 1
-		fi
-		echo -e "${GREEN}lufi.conf Téléchargé${NC}"
+
 		
 		echo "[lufi]" >> /etc/fail2ban/jail.d/lufi.conf
 		echo "enabled = true" >> /etc/fail2ban/jail.d/lufi.conf
@@ -475,6 +481,7 @@ echo
 
 # Done
 systemctl start lufi.service
+sudo service lufi restart
 echo -e "${CYAN} ****************************************************"
 echo -e "${CYAN} ********** \o/ Installation Terminée  \o/ **********"
 echo -e "${CYAN} ****************************************************\n"
