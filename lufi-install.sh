@@ -27,17 +27,13 @@ NC='\033[0m' # No Color
 LOG="/tmp/lufi_install.log"
 
 # Initialize variable values
-installPostgreSQL=""
+iphost=""
 installFail2ban=""
 installLDAP=""
-PostgresqlHost=""
-PostgresqlPort=""
-PostgresqlRootPwd=""
 lufiDb=""
 lufiUser=""
 lufiPwd=""
 PROMPT=""
-Postgresql=""
 ldapHost=""
 ldapPort=""
 ldapDC1=""
@@ -111,7 +107,13 @@ echo
 echo
 # Fin de Prez !
 
-
+if [ -z "${iphost}" ]; then
+	while true; do
+		read -p "Entrez l'adresse IP interne de votre serveur [Ex : 192.168.1.100 ] (**Obligatoire**) : " iphost
+			[ "${iphost}" != "" ] && break
+			echo -e "${YELLOW2}L'adresse IP interne du serveur ne peut etre vide. Veuillez réessayer.${NC}" 1>&2
+	done
+fi
 if [ -z "${website}" ]; then
 	while true; do
 		read -p "Entrez l'adresse de votre site web [Ex : thenerdcar.fr ] (**Obligatoire**) : " website
@@ -134,7 +136,8 @@ fi
 	&& read -p "Entrez le délais par default de conservation du fichier en jour [0, 1, 7, 30 ou 365] : " delayDefault
 [ -z "${maxDelay}" ] \
 	&& read -p "Entrez le délais maximale de conservation du fichier: en jour [Ex : 30, pour 30jours] : " maxDelay
-
+echo
+echo
 
 ############
 ### LDAP ###
@@ -149,7 +152,7 @@ if [[ -z ${installLDAP} ]]; then
         installLDAP=true
     fi
 fi
-
+echo 
 if [ "${installLDAP}" = true ]; then
     # We need to get additional values
     [ -z "${ldapHost}" ] \
@@ -298,7 +301,7 @@ echo -e "${YELLOW2}Configuration de Lufi...${NC}"
 
 
 #Bind IP Lufi
-sed -i 's/listen => \['"'"'http:\/\/127.0.0.1:8081'"'"'\],/listen => \['"'"'http:\/\/172.20.126.108:8081'"'"'\],/1' /srv/lufi/lufi.conf
+sed -i 's/listen => \['"'"'http:\/\/127.0.0.1:8081'"'"'\],/listen => \['"'"'http:\/\/'"${iphost}"':8081'"'"'\],/1' /srv/lufi/lufi.conf
 #Secrets
 Secrets=$(date +%s|sha256sum|base64|head -c 12)
 sed -i 's/#secrets        => \['"'"'fdjsofjoihrei'"'"'\],/secrets        => \['"'"''"${Secrets}"''"'"'\],/1' /srv/lufi/lufi.conf
@@ -327,7 +330,7 @@ if [ "${installLDAP}" = true ]; then
 	sed -i 's/#    user_tree   => '"'"'ou=users,dc=example,dc=org'"'"',/    user_tree   => '"'"'ou='"${ldapUserOu}"',dc='"${ldapDC1}"',dc='"${ldapDC2}"''"'"',/1' /srv/lufi/lufi.conf
 	sed -i 's/#    bind_dn     => '"'"'uid=ldap_user,ou=users,dc=example,dc=org'"'"',/    bind_dn     => '"'"'cn='"${ldapUserBind}"',ou='"${ldapUserBindOu}"',dc='"${ldapDC1}"',dc='"${ldapDC2}"''"'"',/1' /srv/lufi/lufi.conf
 	sed -i 's/#    bind_pwd    => '"'"'secr3t'"'"',/    bind_pwd    => '"'"''"${ldapUserBindPassword}"''"'"',/1' /srv/lufi/lufi.conf
-	sed -i 's/#    user_attr   => '"'"'uid'"'"',/    user_attr   => '"'"'sAMAccountName'"'"', },/1' /srv/lufi/lufi.conf
+	sed -i 's/#    user_attr   => '"'"'uid'"'"',/    user_attr   => '"'"''"${ldapUserAttribute}"''"'"', },/1' /srv/lufi/lufi.conf
 fi
 
 echo
@@ -339,17 +342,14 @@ sed -i 's/PIDFile=\/var\/www\/lufi\/script\/hypnotoad.pid/PIDFile=\/srv\/lufi\/s
 
 systemctl daemon-reload
 systemctl enable lufi.service
-systemctl start lufi.service
-
-
-
+echo
 
 
 #################
 ### FAIL2BAN ###
 #################
 # Fail2ban possible que si LDAP activé
-	if [[ -z ${installLDAP} ]]; then
+if [ "${installLDAP}" = true ]; then
 	# On demande si on veut utiliser le Fail2Ban
 	if [[ -z ${installFail2ban} ]]; then
 		echo -e -n "${CYAN}Voulez-vous installer la fonction Fail2Ban (Anti-BruteForce) ? (O/n): ${NC}"
@@ -370,6 +370,7 @@ systemctl start lufi.service
 		[ -z "${fail2banfindTime}" ] \
 		&& read -p "Entrez le laps de temps autorisé pour faire le maximum de tentative (Ex : 10 , Si 5 essais en < 10min = Ban) : " fail2banfindTime
 		
+		echo
 		echo -e "${CYAN}Installation du paquet Fail2ban & ufw...${NC}"
 
 		apt-get -y install fail2ban &>> ${LOG}
@@ -386,6 +387,7 @@ systemctl start lufi.service
 			
 		cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 		
+		echo -e "${CYAN}Téléchargement du fichier filter Lufi pour Fail2Ban...${NC}"
 		wget --no-check-certificate --show-progress https://raw.githubusercontent.com/zazazouthecat/lufi-install/main/fail2ban/filter/lufi.conf /etc/fail2ban/jail.d/lufi.conf
 
 		echo "[lufi]" >> /etc/fail2ban/jail.d/lufi.conf
@@ -398,7 +400,7 @@ systemctl start lufi.service
 		fail2banfindTime=$((fail2banfindTime*60))
 		echo "findtime=${fail2banfindTime}" >> /etc/fail2ban/jail.d/lufi.conf
 		echo "maxretry=${fail2banmaxRetry}" >> /etc/fail2ban/jail.d/lufi.conf
-		
+		echo "logpath=/srv/lufi/log/production.log" >> /etc/fail2ban/jail.d/lufi.conf
 					
 		echo
 		echo -e "${CYAN}Ajout de regle, pour empêcher les ip locales d'être bannies ${NC}"
@@ -450,6 +452,14 @@ fi
 echo
 
 
+#Crontab
+echo -e "${CYAN}Ajout des taches planifiées (Crontab)...${NC}"
+echo -e "${YELLOW2} Ajout de la tache planifiée de purge des fichiés périmés de Lufi tous les jours à 3h00"
+cat <(crontab -l) <(echo "0 3 * * * cd /srv/lufi && carton exec script/lufi cron cleanfiles --mode production") | crontab -
+echo -e "${YELLOW2} Ajout de la tache planifiée auto reboot tous les jours à 4h00"
+cat <(crontab -l) <(echo "0 4 * * * sudo reboot") | crontab -
+echo
+
 # Cleanup
 echo -e "${CYAN}Nettoyage des fichiers d'installation...${NC}"
 rm -rf mojolicious-*
@@ -459,7 +469,7 @@ echo
 
 
 # Done
-sudo service lufi restart
+systemctl start lufi.service
 echo -e "${CYAN} ****************************************************"
 echo -e "${CYAN} ********** \o/ Installation Terminée  \o/ **********"
 echo -e "${CYAN} ****************************************************\n"
