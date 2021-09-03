@@ -1,6 +1,10 @@
 # 👒 lufi-install
 Script basé sur les sources https://framagit.org/fiat-tux/hat-softwares/lufi
 
+## 😺 Modifications
+ - Ajout Fail2Ban & ufw
+ 
+ 
 ## 🐧 Linux distribution 
 ✅ Debian 10  ❌ Debian 11  ✅ Ubuntu 20
 
