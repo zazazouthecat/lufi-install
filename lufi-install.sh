@@ -204,7 +204,7 @@ echo
 
 # Update apt so we can search apt-cache for newest Tomcat version supported & libmariadb-java/libmysql-java
 echo -e "${CYAN}Mise à jour de apt...${NC}"
-sudo apt-get -qq update
+apt-get -qq update
 
 # Install features
 echo -e "${CYAN}Installation des paquets. Ceci peut prendre quelques minutes...${NC}"
